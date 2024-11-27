@@ -92,8 +92,12 @@ formatCell (Just n) = intToDigit n
 -- | readSudoku file reads from the file, and either delivers it, or stops
 -- if the file did not contain a sudoku
 readSudoku :: FilePath -> IO Sudoku
-readSudoku fp = undefined --do
-  --text <- readFile fp
+readSudoku fp = do
+  text <- readFile fp
+  let soduko = parseSudoku text
+  if isSudoku soduko
+    then return soduko
+  else return allBlankSudoku
 
 parseSudoku :: String -> Sudoku
 parseSudoku = Sudoku . parseRows
