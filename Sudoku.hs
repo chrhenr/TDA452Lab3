@@ -1,7 +1,7 @@
 module Sudoku where
 
 import Data.Char (digitToInt, intToDigit)
-import Data.List (nub, unlines)
+import Data.List (nub)
 import Data.Maybe (isJust)
 import Test.QuickCheck
 
@@ -177,7 +177,7 @@ prop_blocks_lengths = all (\block -> length block == 9) . blocks
 -- * D3
 
 isOkay :: Sudoku -> Bool
-isOkay = all noDupes . blocks
+isOkay = all (noDupes . filter isJust) . blocks
 
 
 ---- Part A ends here --------------------------------------------------------
