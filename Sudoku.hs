@@ -1,6 +1,7 @@
 module Sudoku where
 
 import Test.QuickCheck
+import Data.Maybe (isJust)
 
 ------------------------------------------------------------------------------
 
@@ -43,14 +44,22 @@ allBlankSudoku = Sudoku $ replicate 9 $ replicate 9 Nothing
 -- | isSudoku sud checks if sud is really a valid representation of a sudoku
 -- puzzle
 isSudoku :: Sudoku -> Bool
-isSudoku (Sudoku rs) = (length rs == 9) && (and $ map (\row -> length row == 9) $ rs)
+isSudoku (Sudoku rs) = (length rs == 9) && (and $ map isSudokuRow rs)
+
+isSudokuRow :: Row -> Bool
+isSudokuRow row = (length row == 9) && (and $ map isSudokuCell row)
+
+isSudokuCell :: Cell -> Bool
+isSudokuCell Nothing = True
+isSudokuCell (Just n) = n `elem` [1..9]
+
 
 -- * A3
-
 -- | isFilled sud checks if sud is completely filled in,
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
-isFilled = undefined
+isFilled (Sudoku rs) = and $ map (\row -> and $ map isJust row) rs
+
 
 ------------------------------------------------------------------------------
 
