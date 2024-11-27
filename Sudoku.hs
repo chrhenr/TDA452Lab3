@@ -1,6 +1,8 @@
 module Sudoku where
 
 import Test.QuickCheck
+import Data.Char (digitToInt, intToDigit)
+import Data.List (unlines)
 import Data.Maybe (isJust)
 
 ------------------------------------------------------------------------------
@@ -54,7 +56,7 @@ isSudokuRow row = (length row == 9) && (and $ map isSudokuCell row)
 -- | isSudokuCell row checks if cell is really a valid representation of a sudoku
 -- cell
 isSudokuCell :: Cell -> Bool
-isSudokuCell Nothing = True
+isSudokuCell Nothing  = True
 isSudokuCell (Just n) = n `elem` [1..9]
 
 -- * A3
@@ -70,14 +72,41 @@ isFilled (Sudoku rs) = and $ map (\row -> and $ map isJust row) rs
 -- | printSudoku sud prints a nice representation of the sudoku sud on
 -- the screen
 printSudoku :: Sudoku -> IO ()
-printSudoku = undefined
+printSudoku = putStrLn . formatSudoku
+
+formatSudoku :: Sudoku -> String
+formatSudoku (Sudoku rs) = formatRows rs
+
+formatRows :: [Row] -> String
+formatRows = unlines . map formatRow
+
+formatRow :: Row -> String
+formatRow row = map formatCell row
+
+formatCell :: Cell -> Char
+formatCell Nothing  = '.'
+formatCell (Just n) = intToDigit n
 
 -- * B2
 
 -- | readSudoku file reads from the file, and either delivers it, or stops
 -- if the file did not contain a sudoku
 readSudoku :: FilePath -> IO Sudoku
-readSudoku = undefined
+readSudoku fp = undefined --do
+  --text <- readFile fp
+
+parseSudoku :: String -> Sudoku
+parseSudoku = Sudoku . parseRows
+
+parseRows :: String -> [Row]
+parseRows = map parseRow . lines
+
+parseRow :: String -> Row
+parseRow = map parseCell
+
+parseCell :: Char -> Cell
+parseCell '.' = Nothing
+parseCell c   = Just (digitToInt c)
 
 ------------------------------------------------------------------------------
 
