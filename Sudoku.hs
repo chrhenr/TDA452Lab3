@@ -97,7 +97,7 @@ readSudoku fp = do
   let soduko = parseSudoku text
   if isSudoku soduko
     then return soduko
-  else return allBlankSudoku
+    else error "Not a Sudoku!"
 
 parseSudoku :: String -> Sudoku
 parseSudoku = Sudoku . parseRows
