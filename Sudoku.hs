@@ -46,20 +46,22 @@ allBlankSudoku = Sudoku $ replicate 9 $ replicate 9 Nothing
 isSudoku :: Sudoku -> Bool
 isSudoku (Sudoku rs) = (length rs == 9) && (and $ map isSudokuRow rs)
 
+-- | isSudokuRow row checks if row is really a valid representation of a sudoku
+-- row
 isSudokuRow :: Row -> Bool
 isSudokuRow row = (length row == 9) && (and $ map isSudokuCell row)
 
+-- | isSudokuCell row checks if cell is really a valid representation of a sudoku
+-- cell
 isSudokuCell :: Cell -> Bool
 isSudokuCell Nothing = True
 isSudokuCell (Just n) = n `elem` [1..9]
-
 
 -- * A3
 -- | isFilled sud checks if sud is completely filled in,
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
 isFilled (Sudoku rs) = and $ map (\row -> and $ map isJust row) rs
-
 
 ------------------------------------------------------------------------------
 
