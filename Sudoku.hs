@@ -156,17 +156,18 @@ isOkayBlock = noDupes . filter isJust
 
 -- * D2
 
+column :: Int -> Sudoku -> Block
+column n (Sudoku rs) = [r !! n | r <- rs]
+
 columns :: Sudoku -> [Block]
-columns sud = [column n sud | n <- [1..9]]
-  where
-    column :: Int -> Sudoku -> Block
-    column n (Sudoku rs) = [r !! (n - 1) | r <- rs]
+columns sud = [column n sud | n <- [0..8]]
+
+threeBy :: Int -> Int -> Sudoku -> Block
+threeBy r c (Sudoku rs) = [rs !! x !! y | x <- [(3 * r)..(3 * r + 2)],
+                                          y <- [(3 * c)..(3 * c + 2)]]
 
 threeBys :: Sudoku -> [Block]
-threeBys sud = [threeBy r c sud | r <- [1..3], c <- [1..3]]
-  where
-    threeBy :: Int -> Int -> Sudoku -> Block
-    threeBy r c (Sudoku rs) = [rs !! x !! y | x <- [(r - 1)..(r + 1)], y <- [(c - 1)..(c + 1)]]
+threeBys sud = [threeBy r c sud | r <- [0..2], c <- [0..2]]
 
 blocks :: Sudoku -> [Block]
 blocks sud = rows sud ++ columns sud ++ threeBys sud
