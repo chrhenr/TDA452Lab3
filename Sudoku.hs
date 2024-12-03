@@ -2,7 +2,7 @@ module Sudoku where
 
 import Data.Char (digitToInt, intToDigit)
 import Data.List (nub)
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, isNothing, listToMaybe)
 import Test.QuickCheck
 
 ------------------------------------------------------------------------------
@@ -11,7 +11,7 @@ import Test.QuickCheck
 type Cell = Maybe Int -- a single cell
 type Row  = [Cell]    -- a row is a list of cells
 
-data Sudoku = Sudoku [Row] 
+data Sudoku = Sudoku [Row]
  deriving ( Show, Eq )
 
 rows :: Sudoku -> [Row]
@@ -46,12 +46,12 @@ allBlankSudoku = Sudoku $ replicate 9 $ replicate 9 Nothing
 -- | isSudoku sud checks if sud is really a valid representation of a sudoku
 -- puzzle
 isSudoku :: Sudoku -> Bool
-isSudoku (Sudoku rs) = (length rs == 9) && (all isSudokuRow rs)
+isSudoku (Sudoku rs) = (length rs == 9) && all isSudokuRow rs
 
 -- | isSudokuRow row checks if row is really a valid representation of a sudoku
 -- row
 isSudokuRow :: Row -> Bool
-isSudokuRow row = (length row == 9) && (all isSudokuCell row)
+isSudokuRow row = (length row == 9) && all isSudokuCell row
 
 -- | isSudokuCell row checks if cell is really a valid representation of a sudoku
 -- cell
@@ -63,7 +63,7 @@ isSudokuCell (Just n) = n `elem` [1..9]
 -- | isFilled sud checks if sud is completely filled in,
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
-isFilled (Sudoku rs) = all (\row -> all isJust row) rs
+isFilled (Sudoku rs) = all (all isJust) rs
 
 ------------------------------------------------------------------------------
 
@@ -72,7 +72,7 @@ isFilled (Sudoku rs) = all (\row -> all isJust row) rs
 -- | printSudoku sud prints a nice representation of the sudoku sud on
 -- the screen
 printSudoku :: Sudoku -> IO ()
-printSudoku = putStrLn . formatSudoku
+printSudoku = putStr . formatSudoku
 
 formatSudoku :: Sudoku -> String
 formatSudoku (Sudoku rs) = formatRows rs
@@ -81,7 +81,7 @@ formatRows :: [Row] -> String
 formatRows = unlines . map formatRow
 
 formatRow :: Row -> String
-formatRow row = map formatCell row
+formatRow = map formatCell
 
 formatCell :: Cell -> Char
 formatCell Nothing  = '.'
@@ -117,11 +117,11 @@ parseCell c   = Just (digitToInt c)
 -- * C1
 
 -- | cell generates an arbitrary cell in a Sudoku
-cell :: Gen (Cell)
+cell :: Gen Cell
 cell = frequency [(1, gJust), (9, gNothing)]
   where
     gJust = elements $ map Just [1..9]
-    gNothing = elements [Nothing]
+    gNothing = return Nothing
 
 
 -- * C2
@@ -134,13 +134,13 @@ instance Arbitrary Sudoku where
       gRows = vectorOf 9 gRow
 
  -- hint: get to know the QuickCheck function vectorOf
- 
+
 -- * C3
 
 prop_Sudoku :: Sudoku -> Bool
 prop_Sudoku = isSudoku
   -- hint: this definition is simple!
-  
+
 ------------------------------------------------------------------------------
 
 type Block = [Cell] -- a Row is also a Cell
@@ -192,40 +192,81 @@ type Pos = (Int,Int)
 
 -- * E1
 
+-- Returns the list of positions which are blank in the Sudoku
 blanks :: Sudoku -> [Pos]
-blanks = undefined
+blanks (Sudoku rs) = [(x, y) | x <- [0..8], y <- [0..8], isNothing $ rs !! x !! y]
 
---prop_blanks_allBlanks :: ...
---prop_blanks_allBlanks =
+prop_blanks_allBlanks :: Bool
+prop_blanks_allBlanks = blanks allBlankSudoku == [(x, y) | x <- [0..8], y <- [0..8]]
 
 
 -- * E2
 
+-- Replaces the element in the provided list with the provided new element at the provided index
 (!!=) :: [a] -> (Int,a) -> [a]
-xs !!= (i,y) = undefined
+[] !!= _                     = []
+(x:xs) !!= (i,y) | i < 0     = x:xs
+                 | i == 0    = y:xs
+                 | otherwise = x:(xs !!= (i - 1, y))
 
---prop_bangBangEquals_correct :: ...
---prop_bangBangEquals_correct =
-
+prop_bangBangEquals_correct :: [String] -> (Int,String) -> Bool
+prop_bangBangEquals_correct xs (i, x') | i >= length xs = xs == (xs !!= (i, x'))
+                                       | i < 0          = xs == (xs !!= (i, x'))
+                                       | otherwise      = (xs !!= (i, x')) !! i == x'
 
 -- * E3
 
+-- Returns a new Sudoku where cell at the provided position is replaced with the value of the provided cell
 update :: Sudoku -> Pos -> Cell -> Sudoku
-update = undefined
+update (Sudoku rs) (x, y) c = Sudoku $ rs !!= (x, rowx')
+  where
+    rowx  = rs !! x
+    rowx' = rowx !!= (y, c)
 
---prop_update_updated :: ...
---prop_update_updated =
-
+prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
+prop_update_updated s (x, y) c = rs !! x' !! y' == c
+  where
+    (x', y') = (abs x `mod` 9, abs y `mod` 9)
+    (Sudoku rs) = update s (x', y') c
 
 ------------------------------------------------------------------------------
 
 -- * F1
-
+-- Solves a sudoku, returns nothing if it isn't solvable
+solve :: Sudoku -> Maybe Sudoku
+solve sud = listToMaybe $ solve' sud $ blanks sud
+  where
+    solve' :: Sudoku -> [Pos] -> [Sudoku]
+    solve' sud _ | not (isSudoku sud && isOkay sud) = []
+    solve' sud []     = [sud]
+    solve' sud (b:bs) = concatMap (`solve'` bs) [update sud b c | c <- map Just [1..9]]
 
 -- * F2
 
+-- Reads a file representing a sudoku and prints the solution (or "("no solution")" if none exists)
+readAndSolve :: FilePath -> IO ()
+readAndSolve fp = do
+  sud <- readSudoku fp
+  case solve sud of
+    Just solution -> printSudoku solution
+    Nothing -> putStrLn "(no solution)"
 
 -- * F3
 
+-- Whether the first provided sudoku is a valid solution of the second
+isSolutionOf :: Sudoku -> Sudoku -> Bool
+isSolutionOf (Sudoku sol) (Sudoku orig) = isSudoku (Sudoku sol) &&
+                                          isOkay (Sudoku sol) &&
+                                          null (blanks $ Sudoku sol) &&
+                                          all (\(x, y, c) -> sol !! x !! y == c) origCells
+  where origCells = [(x, y, orig !! x !! y) |
+                                              x <- [0 .. 8],
+                                              y <- [0 .. 8],
+                                              isJust $ orig !! x !! y]
 
 -- * F4
+
+prop_SolveSound :: Sudoku -> Property
+prop_SolveSound orig = property $ case solve orig of
+  Just sol -> sol  `isSolutionOf` orig
+  Nothing -> True
